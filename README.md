@@ -19,7 +19,7 @@ from oklablite import hex_code_to_rgb, rgb_to_oklab, delta_e
 c1 = (64, 80, 96)
 c2 = hex_code_to_rgb("#415161")
 lab1, lab2 = rgb_to_oklab(c1), rgb_to_oklab(c2)
-delta = delta_e(lab1, lab2) #1.73
+delta = delta_e(lab1, lab2)
 ```
 
 ### License
