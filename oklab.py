@@ -25,12 +25,12 @@ def rgb_to_srgb(c:RGB) -> sRGB:
 
 def srgb_to_rgb(c:sRGB) -> RGB:
     return (
-        snap_float_to_rgb(c[0]*255),
-        snap_float_to_rgb(c[1]*255),
-        snap_float_to_rgb(c[2]*255)
+        _snap_float_to_rgb(c[0]*255),
+        _snap_float_to_rgb(c[1]*255),
+        _snap_float_to_rgb(c[2]*255)
     )
 
-def snap_float_to_rgb(x:float) -> int:
+def _snap_float_to_rgb(x:float) -> int:
     x = max(x, 0)
     x = min(x, 255)
     return round(x)
@@ -47,9 +47,9 @@ def srgb_to_linear(c:sRGB) -> LinearRGB:
 
 def linear_to_srgb(c:LinearRGB) -> sRGB:
     return (
-        _f(c[0]),
-        _f(c[1]),
-        _f(c[2])
+        _srgb_clamp(_f(c[0])),
+        _srgb_clamp(_f(c[1])),
+        _srgb_clamp(_f(c[2]))
     )
 
 def _f(x:float) -> float:
@@ -62,6 +62,11 @@ def _f_inv(x:float) -> float:
         return ((x + 0.055)/(1 + 0.055))**2.4
     return x / 12.92 
 
+#ensure srgb values within valid range [0,1]
+def _srgb_clamp(x:float) -> float:
+    x = max(x,0.0)
+    x = min(x,1.0)
+    return x
 
 # linear rgb to oklab
 # https://bottosson.github.io/posts/oklab/
@@ -118,32 +123,32 @@ def delta_e(c1:Oklab, c2:Oklab) -> float:
         (c1[2]-c2[2])**2
     ) ** 0.5
 
+__all__ = [
+    "RGB",
+    "sRGB",
+    "LinearRGB",
+    "Oklab",
+    "hex_code_to_rgb",
+    "rgb_to_srgb",
+    "srgb_to_linear",
+    "linear_to_oklab",
+    "oklab_to_linear",
+    "linear_to_srgb",
+    "srgb_to_rgb",
+    "rgb_to_oklab",
+    "oklab_to_rgb",
+    "delta_e",
+]
+
 if __name__ == "__main__":
     print("Going from Hex Code to OKLab")
-    c_hex = "#405060"
+    c_hex = "#0088FF"
     print(f"Hex: {c_hex}")
     rgb = hex_code_to_rgb(c_hex)
     print(f"RGB: {rgb}")
-    srgb = rgb_to_srgb(rgb)
-    print(f"sRGB: {srgb}")
-    lin_rgb = srgb_to_linear(srgb)
-    print(f"Linear RGB: {lin_rgb}")
-    oklab = linear_to_oklab(lin_rgb)
-    print(f"Oklab: {oklab}")
-    
-    print("Reverting from Oklab to RGB")
-    print(f"Oklab:\t\t{oklab}")
-    lin_rgb_inv = oklab_to_linear(oklab)
-    print(f"Linear RGB:\t{lin_rgb_inv}\nPrevious:\t{lin_rgb}")
-    srgb_inv = linear_to_srgb(lin_rgb_inv)
-    print(f"sRGB:\t\t{srgb_inv}\nPrevious:\t{srgb}")
-    rgb_inv = srgb_to_rgb(srgb_inv)
-    print(f"RGB:\t\t{rgb_inv}\nPrevious:\t{rgb}")
 
-    print("Directly from RGB to Oklab")
-    print(f"RGB:\t\t{rgb}")
-    oklab_direct = rgb_to_oklab(rgb)
-    print(f"Oklab:\t\t{oklab_direct}\nShould be:\t{oklab}")
-    print("Going back")
-    rgb_direct = oklab_to_rgb(oklab_direct)
+    print("RGB to Oklab and back")
+    oklab = rgb_to_oklab(rgb)
+    print(f"Oklab:\t\t{oklab}")
+    rgb_direct = oklab_to_rgb(oklab)
     print(f"RGB:\t\t{rgb_direct}\nShould be:\t{rgb}")
