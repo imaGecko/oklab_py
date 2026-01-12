@@ -1,26 +1,29 @@
 from typing import Tuple
+RGB = Tuple[int,int,int]
+sRGB = Tuple[float,float,float]
+LinearRGB = Tuple[float,float,float]
+Oklab = Tuple[float,float,float]
 
-def str_hex_to_rgb(c:str) -> Tuple[int, int, int]:
+def hex_code_to_rgb(c:str) -> RGB:
     if not c.startswith('#'):
         raise Exception(f'Hex code must start with #\nGot {c}')
     if len(c) != 7:
         raise Exception(f'Hex string must have 7 characters #\nGot {len(c)} characters\n{c}')
     
-    c_out = []
-    for i in range(3):
-        idx = 2*i+1
-        c_out.append(int(c[idx:idx+2],16))
+    return (
+        int(c[1:3],16),
+        int(c[3:5],16),
+        int(c[5:7],16)
+    )
 
-    return tuple(c_out)
-
-def rgb_to_srgb(c:Tuple[int, int, int]) -> Tuple[float,float,float]:
+def rgb_to_srgb(c:RGB) -> sRGB:
     return (
         c[0]/255,
         c[1]/255,
         c[2]/255,
     )
 
-def srgb_to_rgb(c:Tuple[float,float,float]) -> Tuple[int, int, int]:
+def srgb_to_rgb(c:sRGB) -> RGB:
     return (
         snap_float_to_rgb(c[0]*255),
         snap_float_to_rgb(c[1]*255),
@@ -30,31 +33,31 @@ def srgb_to_rgb(c:Tuple[float,float,float]) -> Tuple[int, int, int]:
 def snap_float_to_rgb(x:float) -> int:
     x = max(x, 0)
     x = min(x, 255)
-    return int(x)
+    return round(x)
 
-# rgb to linear rgb
+# srgb to linear rgb
 # https://bottosson.github.io/posts/colorwrong/
 
-def srgb_to_linear(c:Tuple[float,float,float]) -> Tuple[float,float,float]:
+def srgb_to_linear(c:sRGB) -> LinearRGB:
     return (
-        f_inv(c[0]),
-        f_inv(c[1]),
-        f_inv(c[2])
+        _f_inv(c[0]),
+        _f_inv(c[1]),
+        _f_inv(c[2])
     )
 
-def linear_to_srgb(c:Tuple[float,float,float]) -> Tuple[float,float,float]:
+def linear_to_srgb(c:LinearRGB) -> sRGB:
     return (
-        f(c[0]),
-        f(c[1]),
-        f(c[2])
+        _f(c[0]),
+        _f(c[1]),
+        _f(c[2])
     )
 
-def f(x:float) -> float:
+def _f(x:float) -> float:
     if x >= 0.0031308:
         return 1.055 * x**(1.0/2.4) - 0.055
     return 12.92 * x
 
-def f_inv(x:float) -> float:
+def _f_inv(x:float) -> float:
     if x >= 0.04045:
         return ((x + 0.055)/(1 + 0.055))**2.4
     return x / 12.92 
@@ -63,7 +66,7 @@ def f_inv(x:float) -> float:
 # linear rgb to oklab
 # https://bottosson.github.io/posts/oklab/
 
-def linear_to_oklab(c:Tuple[float,float,float]) -> Tuple[float,float,float]:
+def linear_to_oklab(c:LinearRGB) -> Oklab:
     l = 0.4122214708 * c[0] + 0.5363325363 * c[1] + 0.0514459929 * c[2]
     m = 0.2119034982 * c[0] + 0.6806995451 * c[1] + 0.1073969566 * c[2]
     s = 0.0883024619 * c[0] + 0.2817188376 * c[1] + 0.6299787005 * c[2] 
@@ -77,7 +80,7 @@ def linear_to_oklab(c:Tuple[float,float,float]) -> Tuple[float,float,float]:
         0.0259040371*l_ + 0.7827717662*m_ - 0.8086757660*s_
     )
 
-def oklab_to_linear(c:Tuple[float,float,float]) -> Tuple[float,float,float]:
+def oklab_to_linear(c:Oklab) -> LinearRGB:
     l_ = c[0] + 0.3963377774 * c[1] + 0.2158037573 * c[2]
     m_ = c[0] - 0.1055613458 * c[1] - 0.0638541728 * c[2]
     s_ = c[0] - 0.0894841775 * c[1] - 1.2914855480 * c[2]
@@ -92,12 +95,34 @@ def oklab_to_linear(c:Tuple[float,float,float]) -> Tuple[float,float,float]:
     	-0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s
     )
 
+def rgb_to_oklab(c:RGB) -> Oklab:
+    return linear_to_oklab(srgb_to_linear(rgb_to_srgb(c)))
+
+def oklab_to_rgb(c:Oklab) -> RGB:
+    return srgb_to_rgb(linear_to_srgb(oklab_to_linear(c)))
+
+def delta_e(c1:Oklab, c2:Oklab) -> float:
+    '''
+    Delta E describes the equivalence of 2 different colours using euclidian distance in the Oklab colour space.
+    Oklab is perceptually uniform making simple euclidian distance a meaningful metric.
+
+    Rough interpretation:
+    \tDelta > 0.5 minor colour difference
+    \tDelta > 1 small colour difference
+    \tDelta > 2 noticable colour difference
+    \tDelta > 5 different colour
+    '''
+    return (
+        (c1[0]-c2[0])**2 + 
+        (c1[1]-c2[1])**2 + 
+        (c1[2]-c2[2])**2
+    ) ** 0.5
 
 if __name__ == "__main__":
     print("Going from Hex Code to OKLab")
     c_hex = "#405060"
     print(f"Hex: {c_hex}")
-    rgb = str_hex_to_rgb(c_hex)
+    rgb = hex_code_to_rgb(c_hex)
     print(f"RGB: {rgb}")
     srgb = rgb_to_srgb(rgb)
     print(f"sRGB: {srgb}")
@@ -112,5 +137,13 @@ if __name__ == "__main__":
     print(f"Linear RGB:\t{lin_rgb_inv}\nPrevious:\t{lin_rgb}")
     srgb_inv = linear_to_srgb(lin_rgb_inv)
     print(f"sRGB:\t\t{srgb_inv}\nPrevious:\t{srgb}")
-    rgb_inv = srgb_to_rgb(srgb)
+    rgb_inv = srgb_to_rgb(srgb_inv)
     print(f"RGB:\t\t{rgb_inv}\nPrevious:\t{rgb}")
+
+    print("Directly from RGB to Oklab")
+    print(f"RGB:\t\t{rgb}")
+    oklab_direct = rgb_to_oklab(rgb)
+    print(f"Oklab:\t\t{oklab_direct}\nShould be:\t{oklab}")
+    print("Going back")
+    rgb_direct = oklab_to_rgb(oklab_direct)
+    print(f"RGB:\t\t{rgb_direct}\nShould be:\t{rgb}")
