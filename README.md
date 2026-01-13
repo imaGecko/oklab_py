@@ -14,7 +14,7 @@ https://bottosson.github.io/posts/oklab/
 
 ### Example
 ```python
-from oklablite import hex_code_to_rgb, rgb_to_oklab, delta_e
+from oklab_lite import hex_code_to_rgb, rgb_to_oklab, delta_e
 
 c1 = (64, 80, 96)
 c2 = hex_code_to_rgb("#415161")
